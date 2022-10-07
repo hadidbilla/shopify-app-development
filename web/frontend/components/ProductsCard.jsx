@@ -8,12 +8,18 @@ import {
 } from "@shopify/polaris";
 import { Toast } from "@shopify/app-bridge-react";
 import { useAppQuery, useAuthenticatedFetch } from "../hooks";
+import { useEffect } from "react";
 
-export function ProductsCard() {
+export function ProductsCard({ resources, selectedCollection}) {
   const emptyToastProps = { content: null };
   const [isLoading, setIsLoading] = useState(true);
   const [toastProps, setToastProps] = useState(emptyToastProps);
   const fetch = useAuthenticatedFetch();
+
+  
+  useEffect(() => {
+    console.log("resources", resources, "selectedCollection", selectedCollection);
+  }, []);
 
   const {
     data,
@@ -36,9 +42,18 @@ export function ProductsCard() {
   const handlePopulate = async () => {
     setIsLoading(true);
     const response = await fetch("/api/products/create");
-    const collectionResponse = await fetch("/api/collection/create");
-    console.log(collectionResponse);
-    // const collectionResponse = await fetch("/api/collection");
+
+    const data = {
+      collection: {...resources, title:`copy of ${resources.title}`},
+      products: selectedCollection,
+    }
+    const collectionRes = await fetch("/api/collection/create", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
+    });
     // const stream = await collectionResponse.body.getReader().read();
     // const collectionData = new TextDecoder("utf-8").decode(stream.value);
     // console.log(JSON.parse(collectionData));

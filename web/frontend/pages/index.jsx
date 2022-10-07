@@ -15,14 +15,36 @@ import {ProductsCard} from '../components/ProductsCard';
 import { ResourcePicker } from '@shopify/app-bridge-react';
 import { useState } from "react";
 // import products from "../..";
+import {  useAuthenticatedFetch } from "../hooks";
 export default function HomePage() {
   const [resources, setResources] = useState([]);
   const [open, setOpen] = useState(false);
+  const [selectedCollection, setSelectedCollection] = useState(null);
+  const fetch = useAuthenticatedFetch();
 
   const handleSelection = (resources) => {
     setOpen(false);
     setResources(resources.selection);
+    console.log();
+    getCollection({res:resources.selection[0]});
   };
+
+  const getCollection = async ({res}) => {
+    const sliceId = res.id.split("/").pop();
+    const response = await fetch(`/api/collection`,{
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({...res, id:sliceId}),
+    });
+    // console.log(response);
+    const stream = await response.body.getReader().read();
+    const collectionData = new TextDecoder("utf-8").decode(stream.value);
+    const collection = JSON.parse(collectionData);
+    setSelectedCollection(collection);
+    // console.log(collection);
+  }
 
   
   return (
@@ -35,6 +57,7 @@ export default function HomePage() {
       <ResourcePicker
         resourceType={'Collection'}
         open={open}
+        selectMultiple={false}
         onCancel={() => {
           setOpen(false);
         }}
@@ -60,7 +83,8 @@ export default function HomePage() {
         </ResourceList>
       </Card>
       <Card>
-        <ProductsCard/>
+      {selectedCollection && <ProductsCard selectedCollection={selectedCollection.products} resources={resources[0]}/>}
+        {/* <ProductsCard resources={resources[0]}/> */}
       </Card>
     </Page>
   );

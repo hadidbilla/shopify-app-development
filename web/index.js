@@ -13,6 +13,8 @@ import redirectToAuth from "./helpers/redirect-to-auth.js";
 import { BillingInterval } from "./helpers/ensure-billing.js";
 import { AppInstallations } from "./app_installations.js";
 
+
+
 const USE_ONLINE_TOKENS = false;
 const PORT = parseInt(process.env.BACKEND_PORT || process.env.PORT, 10);
 
@@ -67,6 +69,8 @@ export async function createServer(
 ) {
   const app = express();
 
+  app.use(express.json());
+
   app.set("use-online-tokens", USE_ONLINE_TOKENS);
   app.use(cookieParser(Shopify.Context.API_SECRET_KEY));
 
@@ -113,56 +117,125 @@ export async function createServer(
     res.status(200).send(countData);
   });
 
-  app.get("/api/collection", async (req, res) => {
+  app.post("/api/products", async (req, res) => {
     const session = await Shopify.Utils.loadCurrentSession(
       req,
       res,
       app.get("use-online-tokens")
     );
-    const client = new Shopify.Clients.Graphql(session.shop, session.accessToken);
+    const  client = new Shopify.Clients.Graphql(session.shop, session.accessToken);
+    const { collection } = req.body;
+    console.log(collection);
+    //get all products from collection
+
     const query = `{
-      collections(first: 10) {
-        edges {
-          node {
-            id
-            title
+      collectionByHandle(handle: "${collection}") {
+        products(first: 250) {
+          edges {
+            node {
+              id
+              title
+              handle
+              description
+              descriptionHtml
+            }
           }
         }
       }
     }`;
-    const data = await client.query({ data: query });
-    console.log(JSON.stringify(data.body));
-    res.status(200).send(data.body);
+
+    const products = await client.query({ data: query });
+    console.log(JSON.stringify(products.body));
+    
+    
   });
 
-  app.get("/api/collection/create", async (req, res) => {
+  app.post("/api/collection", async (req, res) => {
     const session = await Shopify.Utils.loadCurrentSession(
       req,
       res,
       app.get("use-online-tokens")
     );
-    const client = new Shopify.Clients.Graphql(
-      session.shop,
-      session.accessToken
+
+    const {id} = req.body;
+
+    //get all products from collection rest api
+    const { Collection } = await import(
+      `@shopify/shopify-api/dist/rest-resources/${Shopify.Context.API_VERSION}/index.js`
     );
+    const resData = await Collection.products({ session,id });
+    res.status(200).send(JSON.stringify(resData));
+  });
+
+  app.post("/api/collection/create", async (req, res) => {
+    const session = await Shopify.Utils.loadCurrentSession(
+      req,
+      res,
+      app.get("use-online-tokens")
+    );
+
+    const {collection,products} = req.body;
+    console.log(products);
+
+    // Create a CustomCollection with products and metafields using the REST API
+
+    // const { CustomCollection } = await import(
+    //   `@shopify/shopify-api/dist/rest-resources/${Shopify.Context.API_VERSION}/index.js`
+    // );
+
+    // // console.log(products);
+    // // res.status(200).send(JSON.stringify(products));
+
+    // const custom_collection = new CustomCollection({session});
+    // custom_collection.title = collection.title;
+    // custom_collection.body_html = collection.body_html;
+    // custom_collection.sort_order = collection.sort_order;
+    // custom_collection.products = products;
+    // custom_collection.save();
+    // res.status(200).send(JSON.stringify(custom_collection));
+
+    // create a collection with products using graphql
+
+
+
+    const client = new Shopify.Clients.Graphql(session.shop, session.accessToken);
     const query = `mutation {
       collectionCreate(input: {
-        title: "My New Collection"
-        }) {
-          collection {
-            id
-            title
+        title: "${collection.title}",
+        descriptionHtml: "${collection.body_html}",
+        products: [
+          ${products.map((product) => `{
+            id: "${product.admin_graphql_api_id}"
+          }`)}
+        ]
+      }) {
+        collection {
+          id
+          title
+          descriptionHtml
+          products(first: 250) {
+            edges {
+              node {
+                id
+              }
             }
-            userErrors {
-              field
-              message
-              }
-              }
-              }`;
-    const data = await client.query({ data: query });
-    console.log(JSON.stringify(data.body));
-    res.status(200).send(data.body);
-  });
+          }
+        }
+        userErrors {
+          field
+          message
+        }
+      }
+    }`;
+  
+
+    const resData = await client.query({ data: query });
+    console.log(JSON.stringify(resData.body));
+    res.status(200).send(JSON.stringify(resData));
+
+
+
+}); 
 
   app.get("/api/products/create", async (req, res) => {
     const session = await Shopify.Utils.loadCurrentSession(
