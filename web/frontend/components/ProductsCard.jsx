@@ -45,7 +45,11 @@ export function ProductsCard({ resources, selectedCollection}) {
 
     const data = {
       collection: {...resources, title:`copy of ${resources.title}`},
-      products: selectedCollection,
+      //Filter out the products the id only
+      products: selectedCollection.map((product) => {
+        return { product_id: product.id };
+      
+      }),
     }
     const collectionRes = await fetch("/api/collection/create", {
       method: "POST",

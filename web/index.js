@@ -177,62 +177,23 @@ export async function createServer(
     const {collection,products} = req.body;
     console.log(products);
 
-    // Create a CustomCollection with products and metafields using the REST API
+    // Create custom_collection add product using REST API
+    const { CustomCollection } = await import(
+      `@shopify/shopify-api/dist/rest-resources/${Shopify.Context.API_VERSION}/index.js`
+    );
 
-    // const { CustomCollection } = await import(
-    //   `@shopify/shopify-api/dist/rest-resources/${Shopify.Context.API_VERSION}/index.js`
-    // );
+    const custom_collection = new CustomCollection({
+      session
+    });
 
-    // // console.log(products);
-    // // res.status(200).send(JSON.stringify(products));
+    custom_collection.title = collection.title;
+    custom_collection.collects = products;
 
-    // const custom_collection = new CustomCollection({session});
-    // custom_collection.title = collection.title;
-    // custom_collection.body_html = collection.body_html;
-    // custom_collection.sort_order = collection.sort_order;
-    // custom_collection.products = products;
-    // custom_collection.save();
-    // res.status(200).send(JSON.stringify(custom_collection));
-
-    // create a collection with products using graphql
-
-
-
-    const client = new Shopify.Clients.Graphql(session.shop, session.accessToken);
-    const query = `mutation {
-      collectionCreate(input: {
-        title: "${collection.title}",
-        descriptionHtml: "${collection.body_html}",
-        products: [
-          ${products.map((product) => `{
-            id: "${product.admin_graphql_api_id}"
-          }`)}
-        ]
-      }) {
-        collection {
-          id
-          title
-          descriptionHtml
-          products(first: 250) {
-            edges {
-              node {
-                id
-              }
-            }
-          }
-        }
-        userErrors {
-          field
-          message
-        }
-      }
-    }`;
-  
-
-    const resData = await client.query({ data: query });
-    console.log(JSON.stringify(resData.body));
+    const resData = await custom_collection.save({
+      update:true
+    });
+    console.log(JSON.stringify(resData));
     res.status(200).send(JSON.stringify(resData));
-
 
 
 }); 
