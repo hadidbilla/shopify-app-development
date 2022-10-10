@@ -117,38 +117,6 @@ export async function createServer(
     res.status(200).send(countData);
   });
 
-  app.post("/api/products", async (req, res) => {
-    const session = await Shopify.Utils.loadCurrentSession(
-      req,
-      res,
-      app.get("use-online-tokens")
-    );
-    const  client = new Shopify.Clients.Graphql(session.shop, session.accessToken);
-    const { collection } = req.body;
-    console.log(collection);
-    //get all products from collection
-
-    const query = `{
-      collectionByHandle(handle: "${collection}") {
-        products(first: 250) {
-          edges {
-            node {
-              id
-              title
-              handle
-              description
-              descriptionHtml
-            }
-          }
-        }
-      }
-    }`;
-
-    const products = await client.query({ data: query });
-    console.log(JSON.stringify(products.body));
-    
-    
-  });
 
   app.post("/api/collection", async (req, res) => {
     const session = await Shopify.Utils.loadCurrentSession(
@@ -175,7 +143,7 @@ export async function createServer(
     );
 
     const {collection,products} = req.body;
-    console.log(products);
+    console.log(collection);
 
     // Create custom_collection add product using REST API
     const { CustomCollection } = await import(
@@ -187,6 +155,10 @@ export async function createServer(
     });
 
     custom_collection.title = collection.title;
+    custom_collection.image = {
+      src: collection.image.originalSrc
+    }
+    custom_collection.sort_order = collection.sortOrder;
     custom_collection.collects = products;
 
     const resData = await custom_collection.save({

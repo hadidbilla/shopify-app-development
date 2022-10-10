@@ -16,7 +16,17 @@ export function ProductsCard({ resources, selectedCollection}) {
   const [toastProps, setToastProps] = useState(emptyToastProps);
   const fetch = useAuthenticatedFetch();
 
-  
+  const sortOrderTypes = {
+    "MANUAL": "manual",
+    "BEST-SELLING": "best-selling",
+    "ALPHABET-ASC": "alpha-asc",
+    "ALPHABET-DESC": "alpha-desc",
+    "PRICE-ASC": "price-asc",
+    "PRICE-DESC": "price-desc",
+    "CREATED-ASC": "created-asc",
+    "CREATED-DESC": "created-desc"
+  };
+    
   useEffect(() => {
     console.log("resources", resources, "selectedCollection", selectedCollection);
   }, []);
@@ -44,7 +54,7 @@ export function ProductsCard({ resources, selectedCollection}) {
     const response = await fetch("/api/products/create");
 
     const data = {
-      collection: {...resources, title:`copy of ${resources.title}`},
+      collection: {...resources, title:`copy of ${resources.title}`, sortOrder: sortOrderTypes[resources.sortOrder]},
       //Filter out the products the id only
       products: selectedCollection.map((product) => {
         return { product_id: product.id };
